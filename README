@@ -1,0 +1,59 @@
+autodiff: automatic differentiation library for common lisp
+
+* 日本語
+** これは何?
+   自動微分を使って多変数関数のgradientやhessianを求めるためのライブラ
+   リ(というほどまともなインターフェースがまだないけど…)。
+
+   自動微分については http://www.kmonos.net/wlog/123.html#_2257111201
+   がわかりやすい。自動微分にはforward-modeとreverse-modeがあって、これ
+   はforward-modeについての説明で、これは cl-autodiff
+   https://github.com/masonium/cl-autodiff というものが既に存在するが、
+   ここではgradientの計算をワンパスで行うことのできるreverse-modeについ
+   ても実装している。reverse-modeを実装したcommon lispのライブラリは
+   ちょっとぐぐった感じではまだなさそう。
+
+   http://uhra.herts.ac.uk/bitstream/handle/2299/4335/903836.pdf?sequence=1
+   のforward-modeとreverse-modeの自動微分両方を利用して素早くヘシアンを
+   求めよう、というアルゴリズムを実装したもの。
+
+   C++でよく使われるような演算子オーバーロードによるアプローチを取って
+   いる、がこれはどうも遅いので変更を検討した方が良さそう。
+
+** 使い方
+*** 微分する
+    autodiff:ad-defun
+    で関数を定義すると微分可能な関数ができるので、これに対してautodiff:gradientもしくはautodiff:hessianを適用する。
+    こんな感じ:
+    
+     (autodiff:ad-defun rosen (&rest xs) 
+       (let ((result 0)) 
+         (loop for i from 1 below (length xs) do
+     	 (incf result
+     	       (+ (* 100 (sq (- (nth i xs) 
+     				(sq (nth (1- i) xs)))))
+     		  (sq (- 1 (nth (1- i) xs))))))
+         result))
+
+     (autodiff:hessian #'rosen 1 2 3 4 5)
+    => #2A((402 -400 0 0 0)
+         (-400 3802 -800 0 0)
+         (0 -800 9402 -1200 0)
+         (0 0 -1200 17402 -1600)
+         (0 0 0 -1600 200))
+
+*** インストール
+    asdfの設定をしていればそのディレクトリ、もしく
+    は~/.local/share/common-lisp/source/autodiff/ 以下にこのディレクトリ
+    を展開し、sbclなどでは
+    (require autodiff)
+    そうでなければ
+    (require 'asdf)
+    (asdf:operate 'asdf:load-op 'autodiff)
+    とする。
+
+*** todo
+    - &optional を持つ組み込み関数に対応していない
+    - loopマクロのsumなどが使えない
+    - ad-defunが無理矢理すぎる
+    - defgenericは遅いのでad-defunの時点で関数として定義してしまう方がよいかも (cl-autodiffが取っている方法)。
